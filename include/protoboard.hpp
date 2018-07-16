@@ -9,8 +9,9 @@
 
 namespace gadgetlib
 {	
-	using var_index_t = uint32_t;
+	using var_index_t = size_t;
 	using variable_set = std::set<var_index_t>;
+	using integer_coeff_t = size_t;
 
 	template<typename FieldT>
 	class protoboard;
@@ -26,71 +27,38 @@ namespace gadgetlib
 	template<typename FieldT>
 	struct pb_variable
 	{
-		const var_index_t index_;
+		const var_index_t index;
 
-		//TODO: add implicit coversion between pb_variable, pb_linear_term, pb_linear_combination
+		pb_variable(const var_index_t index) : index(index) {};
 
-		//pb_linear_term<FieldT> operator-() const;
+		pb_linear_term<FieldT> operator*(const integer_coeff_t int_coeff) const;
+		pb_linear_term<FieldT> operator*(const FieldT &field_coeff) const;
 
-		explicit pb_variable(var_index_t index) : index_(index) {}
-		
+		pb_linear_combination<FieldT> operator+(const pb_linear_combination<FieldT> &other) const;
+		pb_linear_combination<FieldT> operator-(const pb_linear_combination<FieldT> &other) const;
+
+		pb_linear_term<FieldT> operator-() const;
+
+		bool operator==(const pb_variable<FieldT> &other) const;
 	};
 
 	template<typename FieldT>
-	pb_linear_term<FieldT> operator*(const FieldT &field_coeff,
-		const pb_variable<FieldT> &var)
-	{
-		return pb_linear_term<FieldT>{var, field_coeff};
-	}
+	pb_linear_term<FieldT> operator*(const integer_coeff_t int_coeff, const pb_variable<FieldT> &var);
 
 	template<typename FieldT>
-	pb_linear_combination<FieldT> operator+(const pb_variable<FieldT> &var1,
-		const pb_variable<FieldT> &var2)
-	{
-		return pb_linear_combination<FieldT>(std::initializer_list<pb_linear_term<FieldT>>{pb_linear_term<FieldT>(var1),
-			pb_linear_term<FieldT>(var2)});
-	}
+	pb_linear_term<FieldT> operator*(const FieldT &field_coeff, const pb_variable<FieldT> &var);
 
 	template<typename FieldT>
-	pb_linear_combination<FieldT> operator-(const pb_variable<FieldT> &var1,
-		const pb_variable<FieldT> &var2)
-	{
-		return pb_linear_combination<FieldT>{pb_linear_term<FieldT>(var1, 1),
-			pb_linear_term<FieldT>(var2, -1)};
-	}
+	pb_linear_combination<FieldT> operator+(const integer_coeff_t int_coeff, const pb_variable<FieldT> &var);
 
 	template<typename FieldT>
-	pb_linear_combination<FieldT> operator+(const pb_linear_term<FieldT> &var1,
-		const pb_linear_term<FieldT> &var2)
-	{
-		return pb_linear_combination<FieldT>{var1, var2};
-	}
+	pb_linear_combination<FieldT> operator+(const FieldT &field_coeff, const pb_variable<FieldT> &var);
 
 	template<typename FieldT>
-	pb_linear_combination<FieldT> operator-(const pb_linear_term<FieldT>& var1,
-		const pb_linear_term<FieldT>& var2)
-	{
-		return pb_linear_combination<FieldT>{var1, pb_linear_term<FieldT>(var2.index, -var2.coeff)};
-	}
+	pb_linear_combination<FieldT> operator-(const integer_coeff_t int_coeff, const pb_variable<FieldT> &var);
 
 	template<typename FieldT>
-	pb_linear_combination<FieldT> operator-(const pb_linear_term<FieldT>& var1,
-		const pb_variable<FieldT> & var2)
-	{
-		return pb_linear_combination<FieldT>(std::initializer_list<pb_linear_term<FieldT>>{var1, 
-			pb_linear_term<FieldT>(var2, -1)});
-	}
-
-	/*template<typename FieldT>
-	pb_linear_combination<FieldT> operator+(const FieldT& field_coeff,
-		const pb_variable<FieldT> &var)
-	{
-		return pb_linear_combination<FieldT>{}
-	}
-
-	template<typename FieldT>
-	pb_linear_combination<FieldT> operator-(const FieldT &field_coeff, 
-		const pb_variable<FieldT> &var);*/
+	pb_linear_combination<FieldT> operator-(const FieldT &field_coeff, const pb_variable<FieldT> &var);
 
 	/****************************** Linear term **********************************/
 	/**
@@ -103,35 +71,32 @@ namespace gadgetlib
 		var_index_t index;
 		FieldT coeff;
 
-		pb_linear_term() {}
-		pb_linear_term(const pb_variable<FieldT> &var) : index(var.index_), coeff(1) {}
-		pb_linear_term(const pb_variable<FieldT> &var, const FieldT &field_coeff) :
-			index(var.index_), coeff(field_coeff) {}
-		pb_linear_term(var_index_t idx, const FieldT &field_coeff) : index(idx), coeff(field_coeff) {}
+		pb_linear_term() {};
+		pb_linear_term(const pb_variable<FieldT> &var);
+		pb_linear_term(const pb_variable<FieldT> &var, const integer_coeff_t int_coeff);
+		pb_linear_term(const pb_variable<FieldT> &var, const FieldT &field_coeff);
 
-
-
-		/*template<typename FieldT>
+		pb_linear_term<FieldT> operator*(const integer_coeff_t int_coeff) const;
 		pb_linear_term<FieldT> operator*(const FieldT &field_coeff) const;
 
-		template<typename FieldT>
-		pb_linear_combination<FieldT> operator+(
-			const pb_linear_combination<FieldT> &other) const;
-		template<typename FieldT>
-		pb_linear_combination<FieldT> operator-(
-			const pb_linear_combination<FieldT> &other) const;*/
+		pb_linear_combination<FieldT> operator+(const pb_linear_combination<FieldT> &other) const;
+		pb_linear_combination<FieldT> operator-(const pb_linear_combination<FieldT> &other) const;
 
-		pb_linear_term<FieldT> operator-() const
-		{
-			pb_linear_term<FieldT> result;
-			result.index = index;
-			result.coeff = -coeff;
-			return result;
-		}
+		pb_linear_term<FieldT> operator-() const;
+
+		bool operator==(const pb_linear_term<FieldT> &other) const;
 	};
 
-	/*template<typename FieldT>
+	template<typename FieldT>
+	pb_linear_term<FieldT> operator*(const integer_coeff_t int_coeff, 
+		const pb_linear_term<FieldT> &lt);
+
+	template<typename FieldT>
 	pb_linear_term<FieldT> operator*(const FieldT &field_coeff, 
+		const pb_linear_term<FieldT> &lt);
+
+	template<typename FieldT>
+	pb_linear_combination<FieldT> operator+(const integer_coeff_t int_coeff, 
 		const pb_linear_term<FieldT> &lt);
 
 	template<typename FieldT>
@@ -139,11 +104,12 @@ namespace gadgetlib
 		const pb_linear_term<FieldT> &lt);
 
 	template<typename FieldT>
+	pb_linear_combination<FieldT> operator-(const integer_coeff_t int_coeff, 
+		const pb_linear_term<FieldT> &lt);
+
+	template<typename FieldT>
 	pb_linear_combination<FieldT> operator-(const FieldT &field_coeff, 
-		const pb_linear_term<FieldT> &lt);*/
-
-
-	/***************************** Linear combination ****************************/
+		const pb_linear_term<FieldT> &lt);
 
 	/**
 	* A linear combination represents a formal expression of the form "sum_i coeff_i * x_{index_i}".
@@ -151,43 +117,40 @@ namespace gadgetlib
 	template<typename FieldT>
 	struct pb_linear_combination
 	{
+	public:
+
 		std::vector<pb_linear_term<FieldT>> terms;
 
 		pb_linear_combination() {};
-		pb_linear_combination(const FieldT &field_coeff)
-		{
-			terms.emplace_back(0, field_coeff);
-		}
-		pb_linear_combination(const pb_variable<FieldT> &var)
-		{
-			terms.emplace_back(var, 1);
-		}
-		pb_linear_combination(const pb_linear_term<FieldT> &lt)
-		{
-			terms.emplace_back(lt);
-		}
-		pb_linear_combination(const std::initializer_list<pb_linear_term<FieldT>>& all_terms) :
-			terms(all_terms) {}
+		pb_linear_combination(const integer_coeff_t int_coeff);
+		//pb_linear_combination(int int_coeff);
+		pb_linear_combination(const FieldT &field_coeff);
+		pb_linear_combination(const pb_variable<FieldT>& var);
+		pb_linear_combination(const pb_linear_term<FieldT> &lt);
+		pb_linear_combination(const std::vector<pb_linear_term<FieldT> > &all_terms);
 
-		//FieldT evaluate() const;
+		/* for supporting range-based for loops over linear_combination */
+		typename std::vector<pb_linear_term<FieldT> >::const_iterator begin() const;
+		typename std::vector<pb_linear_term<FieldT> >::const_iterator end() const;
 
+		void add_term(const pb_variable<FieldT> &var);
+		void add_term(const pb_variable<FieldT> &var, const integer_coeff_t int_coeff);
+		void add_term(const pb_variable<FieldT> &var, const FieldT &field_coeff);
+
+		void add_term(const pb_linear_term<FieldT> &lt);
+
+		FieldT evaluate(const std::vector<FieldT> &assignment) const;
+
+		pb_linear_combination<FieldT> operator*(const integer_coeff_t int_coeff) const;
 		pb_linear_combination<FieldT> operator*(const FieldT &field_coeff) const;
-		pb_linear_combination<FieldT> operator+(const pb_linear_combination<FieldT> &other) const
-		{
-			pb_linear_combination<FieldT> result = *this;
-			result.terms.emplace_back(other.terms.begin(), other.terms.end());
-			return result;
-		}
-		pb_linear_combination<FieldT> operator-(const pb_linear_combination<FieldT> &other)
-		{
-			pb_linear_combination<FieldT> result = *this;
-			for (const auto& elem : other.terms)
-			{
-				result.terms.emplace_back(-elem);
-			}
-			return result;
-		}
 
+		pb_linear_combination<FieldT> operator+(const pb_linear_combination<FieldT> &other) const;
+		pb_linear_combination<FieldT> operator-(const pb_linear_combination<FieldT> &other) const;
+		pb_linear_combination<FieldT> operator-() const;
+
+		bool operator==(const pb_linear_combination<FieldT> &other) const;
+
+		//TODO: delete it later
 		void dump()
 		{
 			bool first = true;
@@ -196,40 +159,33 @@ namespace gadgetlib
 				if (!first)
 					std::cout << " + ";
 				if (term.index > 0)
-					std::cout << "(" << term.coeff << " * var_" << term.index << ") ";
+					std::cout << "(" << (term.coeff) << " * var_" << term.index << ") ";
 				else
-					std::cout << "(" <<  term.coeff << ") ";
+					std::cout << "(" << (term.coeff) << ") ";
 				first = false;
 			}
 			std::cout << std::endl;
 		}
-		//pb_linear_combination<FieldT> operator-() const;
 	};
 
 	template<typename FieldT>
-	pb_linear_combination<FieldT> operator+(const pb_linear_combination<FieldT>& a,
-		const pb_linear_term<FieldT> b)
-	{
-		pb_linear_combination<FieldT> result = a;
-		result.terms.emplace_back(b);
-		return result;
-	}
-
-	/*template<typename FieldT>
-	pb_linear_combination<FieldT> operator*(const FieldT &field_coeff, 
+	pb_linear_combination<FieldT> operator*(const integer_coeff_t int_coeff, 
 		const pb_linear_combination<FieldT> &lc);
 
 	template<typename FieldT>
-	pb_linear_combination<FieldT> operator+(const FieldT &field_coeff, 
-		const pb_linear_combination<FieldT> &lc);
+	pb_linear_combination<FieldT> operator*(const FieldT &field_coeff, const pb_linear_combination<FieldT> &lc);
 
 	template<typename FieldT>
-	pb_linear_combination<FieldT> operator-(const FieldT &field_coeff, 
-		const pb_linear_combination<FieldT> &lc);*/
+	pb_linear_combination<FieldT> operator+(const integer_coeff_t int_coeff, const pb_linear_combination<FieldT> &lc);
 
-	// A rank-1 constraint. The constraint is defined by
-	// <a,x> * <b,x> = <c,x>
-	// where x is an assignment of field elements to the variables.
+	template<typename FieldT>
+	pb_linear_combination<FieldT> operator+(const FieldT &field_coeff, const pb_linear_combination<FieldT> &lc);
+
+	template<typename FieldT>
+	pb_linear_combination<FieldT> operator-(const integer_coeff_t int_coeff, const pb_linear_combination<FieldT> &lc);
+
+	template<typename FieldT>
+	pb_linear_combination<FieldT> operator-(const FieldT &field_coeff, const pb_linear_combination<FieldT> &lc);
 
 	template<typename FieldT>
 	using r1cs_variable_assignment = std::vector<FieldT>;
@@ -247,8 +203,6 @@ namespace gadgetlib
 		r1cs_constraint(const pb_linear_combination<FieldT>& a,
 			const pb_linear_combination<FieldT>& b,
 			const pb_linear_combination<FieldT>& c) : a_(a), b_(b), c_(c) {}
-
-		//bool is_satisfied(const r1cs_variable_assignment<FieldT>& assignment) const;
 	};
 
 	template<typename FieldT>
@@ -258,7 +212,6 @@ namespace gadgetlib
 	class protoboard
 	{
 	public:
-		//const FieldT constant_term_ = Field::one(); 
 		var_index_t next_free_var_ = 1;	
 
 		r1cs_constraint_system<FieldT> constraints_;
@@ -278,10 +231,22 @@ namespace gadgetlib
 			constraints_.emplace_back(constr);
 		}
 
+		void add_r1cs_constraint(const pb_linear_combination<FieldT>& a, 
+			const pb_linear_combination<FieldT>& b, const pb_linear_combination<FieldT>& c)
+		{
+			constraints_.emplace_back(a, b, c);
+		}
+
+		static pb_variable<FieldT> idx2var(var_index_t index)
+		{
+			return pb_variable<FieldT>(index);
+		}
+
+
 		var_index_t pack_bits(var_index_t low, var_index_t high)
 		{
 			var_index_t result = get_free_var();
-			uint64_t coeff = 1;
+			FieldT coeff = 1;
 			pb_linear_combination<FieldT> eq;
 			var_index_t idx = low;
 			while (idx <= high)
@@ -290,16 +255,17 @@ namespace gadgetlib
 				coeff *= 2;
 				idx++;
 			}
-			add_r1cs_constraint({ pb_variable<FieldT>(0), eq, pb_variable<FieldT>(result) });
+			add_r1cs_constraint(1, eq, idx2var(result));
 			return result;
 		}
 		
-		std::pair<var_index_t, var_index_t> unpack_bits(var_index_t packed_var, uint32_t range)
+		std::pair<var_index_t, var_index_t> unpack_bits(var_index_t packed_var, 
+			uint32_t range)
 		{
 			auto index_range = get_free_var_range(range);
 			auto idx = index_range.first;
 			pb_linear_combination<FieldT> eq;
-			uint64_t coeff = 1;
+			FieldT coeff = 1;
 			while (idx <= index_range.second)
 			{
 				make_boolean(idx);
@@ -307,7 +273,7 @@ namespace gadgetlib
 				coeff *= 2;
 				idx++;
 			}
-			add_r1cs_constraint({ pb_variable<FieldT>(0), eq, pb_variable<FieldT>(packed_var) });
+			add_r1cs_constraint(1, eq, idx2var(packed_var));
 			return index_range;
 		}
 		
@@ -344,8 +310,7 @@ namespace gadgetlib
 		}
 		void make_boolean(var_index_t var)
 		{
-			add_r1cs_constraint({ pb_variable<FieldT>(var), 
-				pb_variable<FieldT>(0) - pb_variable<FieldT>(var), FieldT(0) * pb_variable<FieldT>(0) });
+			add_r1cs_constraint(idx2var(var), 1 - idx2var(var), 0);
 		}
 
 		FieldT compute_packed_assignment(var_index_t low, var_index_t high)
@@ -354,7 +319,7 @@ namespace gadgetlib
 			FieldT result = 0;
 			while (idx >= low)
 			{
-				result <<= 1;
+				result *= 2;
 				result += assignment[idx--];
 			}
 			return result;
@@ -369,7 +334,7 @@ namespace gadgetlib
 			while (idx <= end)
 			{
 				assignment[idx] = val % 2;
-				val >>= 1;
+				val /= 2;
 				idx++;
 			}
 		}
@@ -447,6 +412,8 @@ namespace gadgetlib
 		}
 	};
 };
+
+#include "protoboard_impl.hpp"
 
 #endif // PROTOBOARD_HPP_
 

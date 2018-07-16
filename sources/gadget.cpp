@@ -39,6 +39,11 @@ gadget gadgetlib::operator<=(const gadget& lhs, const gadget& rhs)
 	return gadget(OP_KIND::LEQ, lhs, rhs);
 }
 
+gadget gadgetlib::operator*(const gadget & lhs, const gadget & rhs)
+{
+	return gadget(OP_KIND::MUL, lhs, rhs);
+}
+
 //If-then-else construction
 gadget gadgetlib::ITE(const gadget& condition, const gadget& first_choice, 
 	const gadget& second_choice)
@@ -46,15 +51,22 @@ gadget gadgetlib::ITE(const gadget& condition, const gadget& first_choice,
 	return gadget(condition, first_choice, second_choice);
 }
 
-fgadget gadgetlib::operator+(const fgadget& lhs, const fgadget& rhs)
+gadget gadgetlib::ALL(const gadget& a, const gadget& b)
 {
-	fgadget result(OP_KIND::FADD, lhs, rhs);
-	return result;
+	return gadget(OP_KIND::ALL, a, b);
 }
 
-fgadget gadgetlib::operator*(const fgadget& lhs, const fgadget& rhs)
+gadget gadgetlib::ALL(const std::vector<gadget>& gadget_vec)
 {
-	fgadget result(OP_KIND::FMUL, lhs, rhs);
-	return result;
+	assert(gadget_vec.size() >= 3);
+	gadget temp = ALL(gadget_vec[0], gadget_vec[1]);
+	for (size_t i = 2; i < gadget_vec.size(); i++)
+		temp = ALL(temp, gadget_vec[i]);
+	return temp;
+}
+
+gadget gadgetlib::TO_FIELD(const gadget& a)
+{
+	return gadget(OP_KIND::TO_FIELD, a);
 }
 

@@ -91,7 +91,7 @@ namespace picosha2 {
 			word_t g = *(message_digest + 6);
 			word_t h = *(message_digest + 7);
 
-			for (std::size_t i = 0; i < 1; ++i) {
+			for (std::size_t i = 0; i < 64; ++i) {
 				word_t temp1 = h + bsig1(e) + ch(e, f, g) + add_constant[i] + w[i];
 				word_t temp2 = bsig0(a) + maj(a, b, c);
 				h = g;
