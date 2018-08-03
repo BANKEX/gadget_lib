@@ -45,6 +45,7 @@ namespace gadgetlib
 		NTL::ZZ hexToZZ(const std::string& hexVal)
 		{
 			bool decimal = (hexVal[0] == 'd');
+			bool binary = (hexVal[0] == 'b');
 			
 			auto convert_ch = [](char c) -> int
 			{
@@ -58,11 +59,23 @@ namespace gadgetlib
 			NTL::ZZ val;
 			val = NTL::to_ZZ(0);	//initialise the value to zero
 			
-			for (unsigned i = (decimal ? 1: 0); i < hexVal.length(); i++)
+			if (decimal || binary)
 			{
-				val *= (decimal ? 10 : 16);
-				val += convert_ch(hexVal[i]);
-				
+				for (unsigned i = 1; i < hexVal.length(); i++)
+				{
+					val *= (decimal ? 10 : 2);
+					val += convert_ch(hexVal[i]);
+
+				}
+			}
+			else
+			{ 
+				for (unsigned i = 0; i < hexVal.length(); i++)
+				{
+					val *= 0x10;
+					val += convert_ch(hexVal[i]);
+
+				}
 			}
 			return val;
 		}

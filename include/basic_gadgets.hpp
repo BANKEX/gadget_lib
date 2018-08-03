@@ -313,6 +313,148 @@ namespace gadgetlib
 			check_spendability, check_update_proof });
 	}
 
+	struct BattleshipGameParams
+	{
+		uint32_t width;
+		uint32_t height;
+		uint32_t single_funnel_ship_num;
+		uint32_t double_funnel_ship_num;
+		uint32_t three_funnel_ship_num;
+		uint32_t four_funnel_ship_num;
+	};
+
+	gadget start_battleship_game(const gadget& battlefield, const gadget& salt,
+		const gadget& public_hash, const BattleshipGameParams& game_params)
+	{
+		
+		auto get_idx = [&game_params](unsigned i, unsigned j) -> unsigned
+		{
+			return i * game_params.width + j;
+		};
+		
+		auto ship_gadget = [&battlefield, &game_params, &get_idx](unsigned i, 
+			unsigned j, unsigned funnel_count, bool if_horizontal) -> gadget
+		{		
+			gadget result = battlefield[get_idx(i, j)];
+			for (unsigned k = 1; k < funnel_count; k++)
+			{
+				if (if_horizontal)
+					j++;
+				else
+					i++;
+				result = result & battlefield[get_idx(i, j)];
+			}
+
+			return EXTEND(result, battlefield.get_bitsize());
+		};
+
+		auto diagonal_check_gadget = [&battlefield, &get_idx](unsigned i, unsigned j,
+			bool if_main_diagonal)->gadget
+		{
+			if (if_main_diagonal)
+				return battlefield[get_idx(i, j)] & battlefield[get_idx(i + 1, j + 1)];
+			else
+				return battlefield[get_idx(i, j)] & battlefield[get_idx(i + 1, j - 1)];
+		};
+
+		auto total_num = [&game_params](unsigned funnel_count) -> unsigned
+		{
+			switch (funnel_count)
+			{
+			case (1):
+				return 2* (game_params.single_funnel_ship_num +
+					2 * game_params.double_funnel_ship_num +
+					3 * game_params.three_funnel_ship_num +
+					4 * game_params.four_funnel_ship_num);
+				break;
+			case (2):
+				return game_params.double_funnel_ship_num +
+					2 * game_params.three_funnel_ship_num +
+					3 * game_params.four_funnel_ship_num;
+				break;
+			case (3):
+				return game_params.three_funnel_ship_num +
+					2 * game_params.four_funnel_ship_num;
+				break;
+			case (4):
+				return game_params.four_funnel_ship_num;
+				break;
+			default:
+				assert(false && "Unreachable");
+			}
+		};
+
+		gadget check;
+		
+		for (unsigned funnel_count = 3; funnel_count >= 1; funnel_count--)
+		{
+			gadget counter = gadget(0, battlefield.get_bitsize());
+			for (unsigned i = 0; i < game_params.height; i++)
+			{
+				for (unsigned j = 0; j < game_params.width - funnel_count + 1; j++)
+				{
+					counter = counter + ship_gadget(i, j, funnel_count, true);
+				}
+			}
+			for (unsigned j = 0; j < game_params.width; j++)
+			{
+				for (unsigned i = 0; i < game_params.height - funnel_count + 1; i++)
+				{
+					counter = counter + ship_gadget(i, j, funnel_count, false);
+				}
+			}
+
+			if (funnel_count == 3)
+				check = (counter == gadget(total_num(funnel_count),
+					battlefield.get_bitsize()));
+			else
+				check = ALL( check, counter == gadget(total_num(funnel_count),
+					battlefield.get_bitsize()) );
+		}
+
+		//check that there is no diagonal neibourghood
+		gadget all_diag_check = gadget(0, 1);
+		for (unsigned i = 0; i < game_params.height - 1; i++)
+		{
+			for (unsigned j = 0; j < game_params.width - 1; j++)
+			{
+				all_diag_check = all_diag_check | diagonal_check_gadget(i, j, true);
+			}
+		}
+		for (unsigned i = 0; i < game_params.height - 1; i++)
+		{
+			for (unsigned j = 1; j < game_params.width; j++)
+			{
+				all_diag_check = all_diag_check | diagonal_check_gadget(i, j, false);
+			}
+		}
+		check = ALL(check, all_diag_check == gadget(0, 1));
+	
+		//check salt
+		//gadget hash_check = (sha256_gadget(battlefield || salt) == public_hash);
+		//check = ALL(check, hash_check);
+		return check;
+	}
+
+	gadget battleship_game_shot(const gadget& battlefield, const gadget& shot,
+		const gadget shot_result, const gadget& salt, const gadget& public_hash,
+		const BattleshipGameParams& game_params)
+	{
+		gadget hash_check = (sha256_gadget(battlefield || salt) == public_hash);
+		gadget shot_check = gadget(0,1);
+		for (unsigned i = 0; i < game_params.height; i++)
+		{
+			for (unsigned j = 0; j < game_params.width; j++)
+			{
+				gadget is_right_cell = (shot == gadget(i * game_params.width + j,
+					shot.get_bitsize()));
+				gadget shot_check = ITE(is_right_cell,
+					battlefield[i * game_params.width + j], shot_check);
+			}
+		}
+		shot_check == (shot_check == shot_result);
+		return ALL(shot_check, hash_check);
+	}
 }
 
 #endif

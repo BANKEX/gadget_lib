@@ -1,7 +1,9 @@
 #include "annealing.hpp"
 #include "basic_gadgets.hpp"
 #include "utils.hpp"
-#include "Field.hpp"
+#include "Field3.hpp"
+
+#include <algorithm>
 
 
 using namespace gadgetlib;
@@ -17,12 +19,18 @@ struct my_str_provider
 	}
 };
 
+const mp_size_t edwards_r_bitcount = 181;
+const mp_size_t edwards_r_limbs = (edwards_r_bitcount + GMP_NUMB_BITS - 1) / GMP_NUMB_BITS;
+libff::bigint<edwards_r_limbs> edwards_modulus_r("1552511030102430251236801561344621993261920897571225601");
+
+using field = FieldTy<edwards_r_limbs, edwards_modulus_r>;
+
 void check(const gadget& gadget)
 {
-	auto pboard = protoboard<Field<PRIME_NUM>>();
+	auto pboard = protoboard<field>();
 	auto annealing = engraver();
 	annealing.incorporate_gadget(pboard, gadget);
-	r1cs_example<Field<PRIME_NUM>> example(pboard);
+	r1cs_example<field> example(pboard);
 	std::cout << example.constraint_system.size() << std::endl;
 	std::cout << example.check_assignment() << std::endl;
 	//example.dump();
@@ -239,10 +247,61 @@ void check_transaction()
 	check(flag);
 }
 
+void check_battleship_game()
+{
+	BattleshipGameParams game_params{ 7, 7, 4, 3, 2, 0 };
+
+	std::string valid_battlefield = "b"
+		"1010110"
+		"0000000"
+		"0110101"
+		"0000101"
+		"1110001"
+		"0000100"
+		"0100000";
+
+	std::string first_invalid_battlefield = "b"
+		"1010110"
+		"0000000"
+		"0110101"
+		"0000101"
+		"1110001"
+		"0000100"
+		"0110000";
+
+	std::string second_invalid_battlefield = "b"
+		"1010110"
+		"0000000"
+		"0110101"
+		"0000101"
+		"1110001"
+		"0000100"
+		"0001000";
+
+	std::string str_refs[3] = {valid_battlefield, first_invalid_battlefield,
+		second_invalid_battlefield };
+
+	for (auto& str_elem : str_refs)
+	{
+		gadget battlefield(str_elem, 7 * 7, false);
+		//std::transform(str_elem.begin(), str_elem.end(), str_elem.begin(),
+		//	[](char c) -> char {return c - '0'; });
+		std::string salt_str = "1234";
+		std::string hex_digest;
+		picosha2::hash256_hex_string(salt_str, hex_digest);
+		gadget public_hash(hex_digest, 256, true);
+		gadget salt(0x31323334, 32, false);
+		gadget comparison = start_battleship_game(battlefield, salt, public_hash,
+			game_params);
+
+		check(comparison);
+	}
+}
+
 
 void test_all()
 {
-	//check_addition();
+	check_addition();
 	
 	//check_concat_extract();
 	//check_concat_extract2();
@@ -258,9 +317,9 @@ void test_all()
 	//check_common_prefix_mask();
 	//test_MimC();
 	//check_merkle_proof();
-	check_transaction();
+	//check_transaction();
+	//check_battleship_game();
 }
-
 
 int main(int argc, char* argv[])
 {
